@@ -7,7 +7,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
-		<slf4j.version>1.7.5</slf4j.version>
+		<slf4j.version>1.7.2</slf4j.version>
 		<log4j.version>1.2.16</log4j.version>
 		<kie.version>6.1.0.Final</kie.version>
 		<jbpm.version>6.1.0.Final</jbpm.version>
@@ -39,11 +39,17 @@
 			<artifactId>kie-spring</artifactId>
 			<version>${kie.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>it.paybay.titan</groupId>
 			<artifactId>titan-middleware-model</artifactId>
 			<version>1.6.0-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>logback-classic</artifactId>
+					<groupId>ch.qos.logback</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -92,6 +98,11 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>${slf4j.version}</version>
 			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<version>${slf4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>

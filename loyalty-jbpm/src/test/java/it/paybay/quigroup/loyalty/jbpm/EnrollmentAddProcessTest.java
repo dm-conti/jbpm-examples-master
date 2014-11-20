@@ -45,7 +45,10 @@ public class EnrollmentAddProcessTest extends JbpmJUnitBaseTestCase{
         // get access to KieSession instance
         KieSession ksession = runtimeEngine.getKieSession();
         
-        ksession.getWorkItemManager().registerWorkItemHandler("loySAInvoker", new LoyWorkerItemHandler());
+        LoyWorkerItemHandler loyWorkerItemHandler = new LoyWorkerItemHandler();
+        loyWorkerItemHandler.setKSession(ksession);
+        
+        ksession.getWorkItemManager().registerWorkItemHandler("loySAInvoker", loyWorkerItemHandler);
         ksession.getWorkItemManager().registerWorkItemHandler("vCSAInvoker", new VCWorkerItemHandler());
         ksession.getWorkItemManager().registerWorkItemHandler("customerSAInvoker", new CustomerWorkerItemHandler());
         
