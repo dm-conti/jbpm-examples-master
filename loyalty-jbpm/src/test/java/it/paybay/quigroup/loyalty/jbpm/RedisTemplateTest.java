@@ -7,7 +7,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.jedis.JedisConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
-import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,7 +31,6 @@ public class RedisTemplateTest {
 		JedisConnection connection = connectionFactory.getConnection();
 		String pong = connection.ping();
 		System.out.println( "RESPONSE IS :" + pong );
-		
 		
 		Long first = listOps.leftPush("dummy_uid1", "http://dummy/url");
 		System.out.println("FIRST LONG IS : " + first);
