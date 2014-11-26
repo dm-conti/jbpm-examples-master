@@ -1,37 +1,86 @@
 package it.paybay.quigroup.loyalty.jbpm.handler;
 
-import java.util.HashMap;
+import it.paybay.titan.model.TitanMessage;
+
 import java.util.Map;
 
-import it.paybay.titan.model.TitanMessage;
-import it.paybay.titan.model.TitanMessageBuilder;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.ObjectMessage;
 
-import org.drools.core.spi.ProcessContext;
+import org.apache.activemq.command.ActiveMQObjectMessage;
+import org.apache.activemq.command.ActiveMQQueue;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.WorkItem;
 import org.kie.api.runtime.process.WorkItemHandler;
 import org.kie.api.runtime.process.WorkItemManager;
+import org.kie.api.runtime.process.WorkflowProcessInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.core.JmsTemplate;
 
 public class LoyWorkerItemHandler implements WorkItemHandler{
+	public static final String HANDLER_ID = "LoySAInvoker";
+	
 	private Logger LOG = LoggerFactory.getLogger(this.getClass());
+	
 	private KieSession ksession;
+	private final Destination destination = new ActiveMQQueue("queue.loy.in");
+	private final Destination reply = new ActiveMQQueue("queue.loy.out");
+	
+	@Autowired private JmsTemplate jmsTemplate;
 
 	@Override
 	public void executeWorkItem(WorkItem workItem, WorkItemManager manager) {
-		LOG.info(":: call EXECUTE ::");
-		ProcessContext kcontext = new ProcessContext(this.ksession);
+		WorkflowProcessInstance process = (WorkflowProcessInstance) ksession.getProcessInstance(workItem.getProcessInstanceId());
+		TitanMessage message = (TitanMessage) process.getVariable("message");
 		
-		Map<String, Object> payload = new HashMap<String, Object>();
-		payload.put("NextStep", "VCSAInvoker");
+		prepareMessageAndSend(message);
 		
-		TitanMessage message = TitanMessageBuilder
-				.newDocumentMessage()
-				.withPayload(payload)
-				.toTitanMessage();
+		LOG.info("waiting for response ");
+		ObjectMessage responseOMessage = (ObjectMessage) jmsTemplate.receive(reply); //waiting response
 		
-		kcontext.getKnowledgeRuntime().insert(message);
+		TitanMessage responseMessage = null;
+		try {
+			responseMessage = (TitanMessage)responseOMessage.getObject();
+			
+			Map<String, Object> results = workItem.getResults();
+			results.put("titanMessage", responseMessage);
+			
+			if( TitanMessage.MessageType.ERROR.name().equals(responseMessage.getMessageType()) ){
+				ksession.setGlobal("nextStep", "KO");
+				LOG.info("Response is of type = {}; nextStep = KO ", responseMessage.getMessageType());
+				manager.completeWorkItem(workItem.getId(), results);
+				return;
+			}
+			
+			results.put("nextStep", VCWorkerItemHandler.HANDLER_ID);
+			ksession.setGlobal("nextStep", VCWorkerItemHandler.HANDLER_ID);
+			LOG.info("Response is of type = {}; nextStep = {} ", responseMessage.getMessageType(),VCWorkerItemHandler.HANDLER_ID);
+			
+			ksession.setGlobal("titanResponse", responseMessage);
+			manager.completeWorkItem(workItem.getId(), results);
+			return;
+			
+		} catch (JMSException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void prepareMessageAndSend(TitanMessage message) {
+		ObjectMessage omessage = new ActiveMQObjectMessage();
+		try {
+			omessage.setJMSReplyTo(reply);
+			omessage.setObject(message);
+		} 
+		catch (JMSException e) {
+			e.printStackTrace();
+		}
+		
+		LOG.info("send JMS Message ");
+		jmsTemplate.convertAndSend(destination, omessage); //Send
 	}
 
 	@Override

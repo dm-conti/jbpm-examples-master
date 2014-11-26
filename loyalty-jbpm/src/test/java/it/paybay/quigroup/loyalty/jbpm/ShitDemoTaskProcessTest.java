@@ -1,8 +1,8 @@
 package it.paybay.quigroup.loyalty.jbpm;
+import it.paybay.quigroup.loyalty.jbpm.wihandler.STDemoHandler;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import it.paybay.quigroup.loyalty.jbpm.wihandler.STDemoHandler;
 
 import org.jbpm.test.JbpmJUnitBaseTestCase;
 import org.junit.Before;

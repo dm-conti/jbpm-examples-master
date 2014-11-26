@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:drools="http://www.jboss.org/drools" xmlns="http://www.jboss.org/drools" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd http://www.jboss.org/drools drools.xsd http://www.bpsim.org/schemas/1.0 bpsim.xsd" id="Definitions_1" targetNamespace="http://www.jboss.org/drools">
   <bpmn2:itemDefinition id="_String" structureRef="String"/>
+  <bpmn2:itemDefinition id="ItemDefinition_1" structureRef="it.paybay.titan.model.TitanMessage"/>
   <bpmn2:error id="Error_1" errorCode="1001" name="LoyErrorConnection" structureRef="_String"/>
   <bpmn2:error id="Error_2" errorCode="1002" name="VCErrorConnection" structureRef="_String"/>
   <bpmn2:error id="Error_3" errorCode="1003" name="CustomerErrorConnection" structureRef="_String"/>
   <bpmn2:process id="enrollment_add" drools:version="1" drools:packageName="defaultPackage" drools:adHoc="false" name="Default Process" isExecutable="true">
+    <bpmn2:extensionElements>
+      <drools:import name="it.paybay.titan.model.TitanMessage"/>
+    </bpmn2:extensionElements>
     <bpmn2:task id="Task_1" drools:selectable="true" drools:taskName="loySAInvoker" name="LoySAInvoker">
       <bpmn2:incoming>SequenceFlow_2</bpmn2:incoming>
       <bpmn2:outgoing>SequenceFlow_3</bpmn2:outgoing>
+      <bpmn2:ioSpecification id="InputOutputSpecification_2">
+        <bpmn2:inputSet id="_InputSet_2" name="Input Set 2"/>
+        <bpmn2:outputSet id="OutputSet_1" name="Output Set 1"/>
+      </bpmn2:ioSpecification>
     </bpmn2:task>
     <bpmn2:sequenceFlow id="SequenceFlow_3" drools:priority="1" name="" sourceRef="Task_1" targetRef="ExclusiveGateway_1"/>
     <bpmn2:exclusiveGateway id="ExclusiveGateway_1" name="" gatewayDirection="Diverging">
@@ -16,12 +24,12 @@
       <bpmn2:outgoing>SequenceFlow_5</bpmn2:outgoing>
     </bpmn2:exclusiveGateway>
     <bpmn2:sequenceFlow id="SequenceFlow_4" drools:priority="1" name="" sourceRef="ExclusiveGateway_1" targetRef="Task_2">
-      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression" id="FormalExpression_6" language="http://www.java.com/java">String value = (java.lang.String) kcontext.getVariable(&quot;NextStep&quot;);
-return (value == &quot;VCSAInvoker&quot;);</bpmn2:conditionExpression>
+      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression" id="FormalExpression_6" language="http://www.java.com/java">//String value = (java.lang.String) kcontext.getVariable(&quot;NextStep&quot;);
+return (NextStep == &quot;VCSAInvoker&quot;);</bpmn2:conditionExpression>
     </bpmn2:sequenceFlow>
     <bpmn2:sequenceFlow id="SequenceFlow_5" drools:priority="1" name="" sourceRef="ExclusiveGateway_1" targetRef="EndEvent_2">
-      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression" id="FormalExpression_3" language="http://www.java.com/java">String value = (java.lang.String) kcontext.getVariable(&quot;NextStep&quot;);
-return (value != &quot;VCSAInvoker&quot;);</bpmn2:conditionExpression>
+      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression" id="FormalExpression_3" language="http://www.java.com/java">//String value = (java.lang.String) kcontext.getVariable(&quot;NextStep&quot;);
+return (NextStep != &quot;VCSAInvoker&quot;);</bpmn2:conditionExpression>
     </bpmn2:sequenceFlow>
     <bpmn2:task id="Task_2" drools:selectable="true" drools:taskName="vCSAInvoker" name="VCSAInvoker">
       <bpmn2:incoming>SequenceFlow_4</bpmn2:incoming>

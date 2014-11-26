@@ -8,10 +8,13 @@ import org.slf4j.LoggerFactory;
 
 public class VCWorkerItemHandler implements WorkItemHandler{
 	private Logger LOG = LoggerFactory.getLogger(this.getClass());
+	public static final String HANDLER_ID = "VCSAInvoker";
 
 	@Override
 	public void executeWorkItem(WorkItem workItem, WorkItemManager manager) {
-		LOG.info(":: call EXECUTE ::");
+		
+		manager.completeWorkItem(workItem.getId(), null);
+	
 	}
 
 	@Override
