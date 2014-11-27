@@ -30,7 +30,7 @@ public class LoyWorkerItemHandler implements WorkItemHandler{
 	private final Destination reply = new ActiveMQQueue("queue.loy.out");
 	
 	@Autowired private JmsTemplate jmsTemplate;
-
+	
 	@Override
 	public void executeWorkItem(WorkItem workItem, WorkItemManager manager) {
 		WorkflowProcessInstance process = (WorkflowProcessInstance) ksession.getProcessInstance(workItem.getProcessInstanceId());
@@ -46,13 +46,12 @@ public class LoyWorkerItemHandler implements WorkItemHandler{
 			responseMessage = (TitanMessage)responseOMessage.getObject();
 			
 			Map<String, Object> results = workItem.getResults();
-			results.put("titanMessage", responseMessage);
+			results.put("titanResponse", responseMessage);
 			
 			if( TitanMessage.MessageType.ERROR.name().equals(responseMessage.getMessageType()) ){
 				ksession.setGlobal("nextStep", "KO");
 				LOG.info("Response is of type = {}; nextStep = KO ", responseMessage.getMessageType());
 				manager.completeWorkItem(workItem.getId(), results);
-				return;
 			}
 			
 			results.put("nextStep", VCWorkerItemHandler.HANDLER_ID);
@@ -61,7 +60,6 @@ public class LoyWorkerItemHandler implements WorkItemHandler{
 			
 			ksession.setGlobal("titanResponse", responseMessage);
 			manager.completeWorkItem(workItem.getId(), results);
-			return;
 			
 		} catch (JMSException e) {
 			// TODO Auto-generated catch block

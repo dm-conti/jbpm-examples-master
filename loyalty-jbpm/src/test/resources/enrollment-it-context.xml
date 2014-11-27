@@ -25,8 +25,7 @@
 	<!-- ActiveMQ Destination -->
 	<amq:queue id="destination" physicalName="org.springbyexample.jms.test" />
 
-	<!-- JMS ConnectionFactory to use, configuring the embedded broker using 
-		XML -->
+	<!-- JMS ConnectionFactory to use, configuring the embedded broker using XML -->
 	<amq:connectionFactory id="jmsFactory" brokerURL="vm://localhost" />
 
 	<!-- JMS Producer Configuration -->
@@ -41,5 +40,6 @@
 	<bean id="loyWorkerItemHandler" class="it.paybay.quigroup.loyalty.jbpm.handler.LoyWorkerItemHandler" />
 	<bean id="vCWorkerItemHandler" class="it.paybay.quigroup.loyalty.jbpm.handler.VCWorkerItemHandler" />
 	<bean id="customerWorkerItemHandler" class="it.paybay.quigroup.loyalty.jbpm.handler.CustomerWorkerItemHandler" />
+	<bean id="redisWorkerItemHandler" class="it.paybay.quigroup.loyalty.jbpm.handler.RedisWorkerItemHandler" />
 
 </beans>

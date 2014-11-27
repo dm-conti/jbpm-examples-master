@@ -11,9 +11,7 @@
 		<log4j.version>1.2.16</log4j.version>
 		<kie.version>6.1.0.Final</kie.version>
 		<activemq.version>5.7.0</activemq.version>
-		<!-- <spring.version>3.0.7.RELEASE</spring.version> -->
 		<spring.version>4.0.7.RELEASE</spring.version>
-		<!-- <spring.test.version>3.2.4.RELEASE</spring.test.version> -->
 		<spring.test.version>4.0.7.RELEASE</spring.test.version>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
@@ -48,12 +46,12 @@
 			<groupId>it.paybay.titan</groupId>
 			<artifactId>titan-middleware-model</artifactId>
 			<version>1.6.0-SNAPSHOT</version>
-			<exclusions>
+			<!-- <exclusions>
 				<exclusion>
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
-			</exclusions>
+			</exclusions> -->
 		</dependency>
 
 		<!-- Spring Dependencies -->

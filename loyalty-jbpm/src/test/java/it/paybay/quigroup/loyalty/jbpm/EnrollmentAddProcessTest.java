@@ -1,7 +1,9 @@
 package it.paybay.quigroup.loyalty.jbpm;
 
+import it.paybay.quigroup.loyalty.jbpm.EnrollmentAddProcessTest.EnrollmentAddProcessConfig;
 import it.paybay.quigroup.loyalty.jbpm.handler.CustomerWorkerItemHandler;
 import it.paybay.quigroup.loyalty.jbpm.handler.LoyWorkerItemHandler;
+import it.paybay.quigroup.loyalty.jbpm.handler.RedisWorkerItemHandler;
 import it.paybay.quigroup.loyalty.jbpm.handler.VCWorkerItemHandler;
 import it.paybay.titan.model.TitanMessage;
 import it.paybay.titan.model.TitanMessageBuilder;
@@ -18,35 +20,42 @@ import mockit.Mocked;
 import mockit.NonStrictExpectations;
 
 import org.apache.activemq.command.ActiveMQObjectMessage;
+import org.apache.activemq.spring.ActiveMQConnectionFactory;
 import org.jbpm.test.JbpmJUnitBaseTestCase;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.manager.RuntimeEngine;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.BoundListOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:enrollment-it-context.xml" })
+@ContextConfiguration(classes=EnrollmentAddProcessConfig.class, loader=AnnotationConfigContextLoader.class)
 public class EnrollmentAddProcessTest extends JbpmJUnitBaseTestCase {
 	private Map<String, Object> params;
 
 	private KieSession ksession;
 
-	@Autowired
-	private LoyWorkerItemHandler loyWorkerItemHandler;
-	@Autowired
-	private VCWorkerItemHandler vCWorkerItemHandler;
-	@Autowired
-	private CustomerWorkerItemHandler customerWorkerItemHandler;
-
-	@Mocked
-	@Autowired
-	private JmsTemplate jmsTemplate;
+	@Autowired private LoyWorkerItemHandler loyWorkerItemHandler;
+	@Autowired private VCWorkerItemHandler vCWorkerItemHandler;
+	@Autowired private CustomerWorkerItemHandler customerWorkerItemHandler;
+	@Autowired private RedisWorkerItemHandler redisWorkerItemHandler;
+	
+	@Mocked private JmsTemplate jmsTemplate;
+	@Mocked private RedisTemplate<String, String> redisTemplate;
+	@Mocked private BoundListOperations<String, String> boundListOperations;
 
 	public EnrollmentAddProcessTest() {
 		// setup data source, enable persistence
@@ -71,10 +80,14 @@ public class EnrollmentAddProcessTest extends JbpmJUnitBaseTestCase {
 		ksession = runtimeEngine.getKieSession();
 
 		loyWorkerItemHandler.setKSession(ksession);
+		vCWorkerItemHandler.setKSession(ksession);
+		customerWorkerItemHandler.setKSession(ksession);
+		redisWorkerItemHandler.setKSession(ksession);
 
 		ksession.getWorkItemManager().registerWorkItemHandler("loySAInvoker", loyWorkerItemHandler);
 		ksession.getWorkItemManager().registerWorkItemHandler("vCSAInvoker", vCWorkerItemHandler);
 		ksession.getWorkItemManager().registerWorkItemHandler("customerSAInvoker", customerWorkerItemHandler);
+		ksession.getWorkItemManager().registerWorkItemHandler("redisInvoker", redisWorkerItemHandler);
 	}
 
 	@Test
@@ -93,10 +106,11 @@ public class EnrollmentAddProcessTest extends JbpmJUnitBaseTestCase {
 			ActiveMQObjectMessage response = new ActiveMQObjectMessage();
 			response.setObject(titanMessage);
 
-			jmsTemplate.receive((Destination) any);
-			returns((Message) response);
-
+			jmsTemplate.receive((Destination) any); returns((Message) response);
 			
+			redisTemplate.boundListOps(anyString); returns(boundListOperations);
+			boundListOperations.leftPush(anyString); returns(1L);
+
 		} };
 
 		// start process
@@ -106,12 +120,16 @@ public class EnrollmentAddProcessTest extends JbpmJUnitBaseTestCase {
 		// assertProcessInstanceCompleted(processInstance.getId(), ksession);
 
 		// check what nodes have been triggered
-		assertNodeTriggered(processInstance.getId(), "StartEvent", "LoySAInvoker", "VCSAInvoker", "StopEvent");
-		// assertNodeTriggered(processInstance.getId(), "CustomerSAInvoker");
-		// assertNodeTriggered(processInstance.getId(), "StopEvent");
+		assertNodeTriggered(processInstance.getId(), 
+			"StartEvent", 
+			"LoySAInvoker", 
+			"VCSAInvoker", 
+			"CustomerSAInvoker", 
+			"RedisInvoker",
+			"StopEvent");
 	}
 	
-	@Test
+	@Test @Ignore
 	public void startEnrollmentNOKResponse() throws JMSException {
 		final TitanMessage titanMessage = TitanMessageBuilder.newCommandMessage("addAcc") // commandName
 			.withPayload(new HashMap<String, Object>()).toTitanMessage();
@@ -138,5 +156,51 @@ public class EnrollmentAddProcessTest extends JbpmJUnitBaseTestCase {
 
 		// check what nodes have been triggered
 		assertNodeTriggered(processInstance.getId(), "StartEvent", "LoySAInvoker", "LoyFail");
+	}
+	
+	
+	
+	/**
+	 * Class <code>EnrollmentAddProcess2Test.java</code>
+	 * is a Inner Configuration Class which makes 
+	 * the test class self-contained.
+	 *
+	 * @author Domenico Conti [domenico.conti@quigroup.it]
+	 *
+	 */
+	
+	@Configuration
+	static class EnrollmentAddProcessConfig {
+		final String HOSTNAME = "localhost";
+		final int PORT = 6379;
+		
+		public @Bean JmsTemplate jmsTemplate(){
+			ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
+			connectionFactory.setBrokerURL("vm://" + HOSTNAME);
+			
+			SingleConnectionFactory jmsProducerConnectionFactory = new SingleConnectionFactory();
+			jmsProducerConnectionFactory.setTargetConnectionFactory(connectionFactory);
+			
+			return new JmsTemplate(jmsProducerConnectionFactory); 
+		}
+		
+		public @Bean RedisTemplate<String, String> redisTemplate(){
+			JedisConnectionFactory connectionFactory = new JedisConnectionFactory();
+			connectionFactory.setUsePool(false);
+			connectionFactory.setHostName(HOSTNAME);
+			connectionFactory.setPort(PORT);
+			connectionFactory.setPassword("");
+			
+			RedisTemplate<String, String> redisTemplate = new RedisTemplate<String, String>();
+			redisTemplate.setConnectionFactory(connectionFactory);
+			
+			return redisTemplate; 
+		}
+		
+		//WorkItemHandler definitions
+		public @Bean LoyWorkerItemHandler loyWorkerItemHandler(){ return new LoyWorkerItemHandler(); }
+		public @Bean VCWorkerItemHandler vCWorkerItemHandler(){ return new VCWorkerItemHandler(); }
+		public @Bean CustomerWorkerItemHandler customerWorkerItemHandler(){ return new CustomerWorkerItemHandler(); }
+		public @Bean RedisWorkerItemHandler redisWorkerItemHandler(){ return new RedisWorkerItemHandler(); }
 	}
 }

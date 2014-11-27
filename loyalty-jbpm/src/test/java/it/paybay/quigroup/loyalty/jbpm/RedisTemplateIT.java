@@ -14,7 +14,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations={"classpath*:META-INF/spring/redis.xml"})
-public class RedisTemplateTest {
+public class RedisTemplateIT {
 	
 	@Autowired private JedisConnectionFactory connectionFactory;
 	
@@ -25,7 +25,7 @@ public class RedisTemplateTest {
     // can also inject as Value, Set, ZSet, and HashOperations
     @Resource(name="redisTemplate") private ListOperations<String, String> listOps;
 	
-	@Test
+    @Test
 	public void redisConnectionTest() {
 		
 		JedisConnection connection = connectionFactory.getConnection();
