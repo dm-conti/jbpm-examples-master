@@ -66,7 +66,17 @@ public class LoyWorkerItemHandler implements WorkItemHandler{
 			e.printStackTrace();
 		}
 	}
-
+	
+	@Override
+	public void abortWorkItem(WorkItem workItem, WorkItemManager manager) {
+		LOG.info(":: call ABORT ::");
+		manager.abortWorkItem(workItem.getId());
+	}
+	
+	public void setKSession(KieSession ksession){
+		this.ksession = ksession;
+	}
+	
 	private void prepareMessageAndSend(TitanMessage message) {
 		ObjectMessage omessage = new ActiveMQObjectMessage();
 		try {
@@ -79,14 +89,5 @@ public class LoyWorkerItemHandler implements WorkItemHandler{
 		
 		LOG.info("send JMS Message ");
 		jmsTemplate.convertAndSend(destination, omessage); //Send
-	}
-
-	@Override
-	public void abortWorkItem(WorkItem workItem, WorkItemManager manager) {
-		LOG.info(":: call ABORT ::");
-	}
-	
-	public void setKSession(KieSession ksession){
-		this.ksession = ksession;
 	}
 }
